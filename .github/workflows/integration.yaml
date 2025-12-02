@@ -1,0 +1,29 @@
+name: Integration
+
+on:
+- push
+  # TODO: Schedule every day
+
+concurrency:
+  group: ${{ github.workflow }}
+  # Do we need ref?
+  # group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true  
+
+jobs:
+  vm-tests:
+    runs-on: ubuntu-24.04
+    # Running on GitHub free runners for iteration, eventually move to Canonical
+    # self-hosted runners for other architecture support.
+    # runs-on: [self-hosted, amd64, medium, noble] # Maybe need "reactive" as well?
+    steps:
+    - uses: actions/checkout@v4
+    - name: run
+      run: |
+        sudo apt-get install -y make tox libapt-pkg-dev
+        sudo mkdir -p /srv/images
+        sudo ./tools/vmtest-system-setup
+        # TODO: only download series to test? Don't need xenial, bionic, etc.
+        sudo ./tools/vmtest-sync-images jammy
+        # sudo ./tools/jenkins-runner --skip-images-dirlock -p 4 tests/vmtests/test_basic.py:FocalTestBasic tests/vmtests/test_basic.py:JammyTestBasic
+        sudo ./tools/jenkins-runner --skip-images-dirlock -p 4 tests/vmtests/test_basic.py:JammyTestBasic
